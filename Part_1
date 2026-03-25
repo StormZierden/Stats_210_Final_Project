@@ -1,0 +1,23 @@
+Data Description
+
+Identify your data source. From INautralist and possible from the califonia fish and wild life. Data about the califronia red frog, and american bull frog 
+Describe your data, including variables and data types. type of frog,  time of oberservation ( possible see if we can see it by year)
+Identify the research questions you want to answer. I want to see if there is a possible corrolation to the population of the california red frog and the american bull frog 
+
+Data Visualization
+
+What do you want your final visualizations to look like? I want to have three bar graphs one bar graph showing the red frog population over the years histogram or scatterplot, the same but for the american bull frog. Then one final graph comparing the two population 
+What do you want to highlight on your final visualizations in order to answer your research questions? How do you plan to do that? I'm not sure what graph i want to use just yet but I am going to use a graph that can compare the two population, or maybe a graph that has a ratio of the two population to one another. 
+What is missing from your data or would need to change in your data to create these visualizations? I would need to make a ratio and join the two data in order to create the visulation that I need. 
+
+Data Cleaning
+
+Do you need to reformat any variables into different types (e.g. factors, time, dates, strings)? Or remove information from variable values?
+Do you need to deal with any missing data, especially missing data coded other than NA? Yes there is a lot of blank data, I would like to see how the it appears in r if its either NA or just blank but i would Filter(is.na("")
+Do you need to filter your data? How?  
+Do you need to create any new variables? What variables? How? Yes I would be creating a variable that is just the years and not the entire date.  
+Do you need to add new data (join) to your data? What data? How? Yes I would need to join both the America bull frog and the red legged frog data, I would need to do a join based on either time or location. 
+Do you need pivot your data in any way? Why? How?
+Do you need to summarize any of the variables? Which ones? How? Yes I need to sumarrised each data by the year and how many time that speices of frog was spotted during the year
+What other aspects of your data need to be “fixed” in order to make your data visualizations?
+Are there any variables you can exclude from your data? yes much of that data is not needed for my research question, as its just simply metadata, 
