@@ -1,0 +1,87 @@
+---
+title: "final_project"
+author: "Storm Zierden!"
+format: gfm
+editor: source
+execute: 
+  echo: false
+  warning: false
+  message: false
+  
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library("sf")
+library("tigris")
+library(tidyr)
+```
+
+```{r}
+#| label: data
+redlegged <-read_csv("redlegged-original/observations-714460.csv")
+
+bullfrog <- read_csv("bullfrog-original/observations-714470.csv")
+```
+```{r}
+#| label: shapefile
+
+counties_sf <- counties(cb = TRUE, class = "sf", year = 2022)
+
+```
+
+
+
+```{r}
+#| label: clean-redleg
+
+cleanred <- redlegged |>
+  select(c(id, observed_on, quality_grade, place_guess, latitude, longitude, species_guess, scientific_name, common_name)) |>
+  drop_na() |>
+filter(place_guess != "Ensenada, MX-BN, MX") |>
+  separate_wider_delim(observed_on, delim = "-", names = c("year", "month", "day"))|>
+st_as_sf(coords = c("longitude", "latitude"), crs = 4269) |>
+   st_join(counties_sf, join = st_nearest_feature) |>
+st_drop_geometry()
+  
+
+```
+#https://copilot.microsoft.com/shares/KLbgNqjQ2ykxWrLaikS7E
+
+```{r}
+#| label: clean-bullfrog
+
+cleanbull <- bullfrog |>
+   select(c(id, observed_on, quality_grade, latitude, longitude, species_guess, scientific_name, common_name)) |>
+  drop_na() |>
+  separate_wider_delim(observed_on, delim = "-", names = c("year", "month", "day"))|>
+st_as_sf(coords = c("longitude", "latitude"), crs = 4269) |>
+  st_join(counties_sf, join = st_intersects) |>
+  st_drop_geometry()
+
+  
+```
+
+```{r}
+#frog <-  cleanbull |>
+  left_join(cleanred,
+             by = c("year", "NAMESLAD"),
+            relationship = "many-to-many")
+```
+
+```{r}
+#| label: redfrog_viz
+cleanred|>
+  count(NAME, year) |>
+  ggplot(aes(x = fct_inorder(NAME), y = n, fill = year)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "County Name", y = "Number of Frogs")
+  
+```
+## Map does not look like how I want to, I want to seprate the red frog level by year and county in order to see its growth possible need make multiple and do facet but when i do it bunches it up a lot and does work how i want to
+##I also want to combine the two data sets and see if the reason why some county have such low amounts is where bullfrogs have high population but when i join r isn't very happy with me
+##i also need to clean up some of the data as it still have to much varabity to it.
+
