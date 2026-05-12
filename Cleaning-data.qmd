@@ -21,9 +21,9 @@ library(tidyr)
 
 ```{r}
 #| label: data
-redlegged <-read_csv("redlegged-original/observations-714460.csv")
+redlegged <-read_csv("data-bad/redlegged-original/observations-714460.csv")
 
-bullfrog <- read_csv("bullfrog-original/observations-714470.csv")
+bullfrog <- read_csv("data-bad/bullfrog-original/observations-714470.csv")
 ```
 ```{r}
 #| label: shapefile
@@ -45,7 +45,6 @@ filter(place_guess != "Ensenada, MX-BN, MX") |>
 st_as_sf(coords = c("longitude", "latitude"), crs = 4269) |>
    st_join(counties_sf, join = st_nearest_feature) |>
 st_drop_geometry()
-  
 
 ```
 #https://copilot.microsoft.com/shares/KLbgNqjQ2ykxWrLaikS7E
@@ -56,32 +55,101 @@ st_drop_geometry()
 cleanbull <- bullfrog |>
    select(c(id, observed_on, quality_grade, latitude, longitude, species_guess, scientific_name, common_name)) |>
   drop_na() |>
-  separate_wider_delim(observed_on, delim = "-", names = c("year", "month", "day"))|>
-st_as_sf(coords = c("longitude", "latitude"), crs = 4269) |>
+  separate_wider_delim(observed_on, delim = "-", names = c("year", "month", "day"), )|>
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269) |>
   st_join(counties_sf, join = st_intersects) |>
-  st_drop_geometry()
+  st_drop_geometry() 
 
   
 ```
 
 ```{r}
-#frog <-  cleanbull |>
-  left_join(cleanred,
-             by = c("year", "NAMESLAD"),
-            relationship = "many-to-many")
+#| label: counts_red
+
+ red_count <- cleanred|>
+  count(NAME, year) |>
+  group_by(NAME) |>
+  filter(n >= 5) |>
+  filter(n_distinct(year) > 5) |>
+  filter(year < '2026')
+  
+  bull_count <- cleanbull|>
+  count(NAME, year) |>
+  group_by(NAME) |>
+  filter(n >= 5) |>
+  filter(n_distinct(year) > 5) |>
+  filter(year < '2026')
+```
+
+```{r}
+#| label: join
+
+frogs <- bull_count |>
+  inner_join(red_count, by = c("NAME", "year")) |>
+  replace_na(list(n.x = 0,
+               n.y = 0)) |>
+  rename(bullfrog = n.x,
+              redfrog = n.y) |>
+  group_by(year) |>
+  summarise(
+  Bullfrog = sum(bullfrog),
+  Redfrog =sum(redfrog)
+  ) |>
+  pivot_longer(
+    cols = c(Bullfrog, Redfrog),
+    names_to = "Species",
+    values_to = "count"
+  ) 
+  
 ```
 
 ```{r}
 #| label: redfrog_viz
-cleanred|>
-  count(NAME, year) |>
-  ggplot(aes(x = fct_inorder(NAME), y = n, fill = year)) +
-  geom_col() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "County Name", y = "Number of Frogs")
+red_count|>
+  ggplot(aes(x = as.numeric(year), y = n, group = NAME, color = NAME)) +
+  geom_line() +
+  geom_point() + 
+  theme_light() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(x = "Year", 
+       y = "Number of Frogs", 
+       title = "Yearly Growth of California's Red-Legged Frog within Each County")
+
+red_count|>
+  ggplot(aes(x = as.numeric(year), y = n, group = NAME, color = NAME)) +
+  geom_line() +
+  geom_point() + 
+  facet_wrap("NAME") +
+  theme_light() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(x = "Year", 
+       y = "Number of Frogs", 
+       title = "Yearly Growth of California's Red-Legged Frog within Each County")
   
 ```
-## Map does not look like how I want to, I want to seprate the red frog level by year and county in order to see its growth possible need make multiple and do facet but when i do it bunches it up a lot and does work how i want to
-##I also want to combine the two data sets and see if the reason why some county have such low amounts is where bullfrogs have high population but when i join r isn't very happy with me
-##i also need to clean up some of the data as it still have to much varabity to it.
+
+
+```{r}
+#|  label: comparison_viz
+
+frogs |>
+  ggplot(aes(x = year, y = count, fill = Species)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(
+    values = c(
+      Bullfrog = "#556b2f",
+      Redfrog  = "#AA2704"
+    )
+  ) +
+  labs(
+    x = "Year",
+    y = "Total Number of Frogs",
+    title = "California Red-Legged Frog vs American Bullfrog Population in California Over Time"
+  ) +
+  theme_light(base_size = 14)
+```
 
