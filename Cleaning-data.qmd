@@ -22,11 +22,11 @@ library(tidyverse)
 library("sf")
 library("tigris")
 library(tidyr)
+library(ggplot2)
 ```
 
 ```{r}
 #| label: data
-#| eval: TRUE
 redlegged <-read_csv("data-bad/redlegged-original/observations-714460.csv")
 
 bullfrog <- read_csv("data-bad/bullfrog-original/observations-714470.csv")
@@ -34,7 +34,6 @@ bullfrog <- read_csv("data-bad/bullfrog-original/observations-714470.csv")
 
 ```{r}
 #| label: shapefile
-#| eval: TRUE
 
 counties_sf <- counties(cb = TRUE, class = "sf", year = 2022)
 
@@ -57,7 +56,6 @@ The first part of cleaning within this data was turning both the latitude and lo
 Next, for each of the data sets, we counted how many times an observation was found per each county per year and then filtered years that didn’t have more than five observations per year and then filtered further for counties that didn’t have at least five years of observations. For our second graph, in order to make a comparison of the frogs, we need to join the two species that had matching years and counties. Then we grouped the data up by year and counted the amount of each species within that year. After that we exchanged the places within the table to make it wider so that each species has its own column with its counts inside of it. Species is now its own column, and count is its own column as well. This allows us to make our comparison graph.
 ```{r}
 #| label: clean-redleg
-#| eval: TRUE
 
 cleanred <- redlegged |>
   select(c(id, observed_on, quality_grade, place_guess, latitude, longitude, species_guess, scientific_name, common_name)) |>
@@ -73,8 +71,6 @@ st_drop_geometry()
 
 ```{r}
 #| label: clean-bullfrog
-#| eval: TRUE
-
 
 cleanbull <- bullfrog |>
    select(c(id, observed_on, quality_grade, latitude, longitude, species_guess, scientific_name, common_name)) |>
@@ -89,8 +85,6 @@ cleanbull <- bullfrog |>
 
 ```{r}
 #| label: counts_red
-#| eval: TRUE
-
 
  red_count <- cleanred|>
   count(NAME, year) |>
@@ -98,8 +92,14 @@ cleanbull <- bullfrog |>
   filter(n >= 5) |>
   filter(n_distinct(year) > 5) |>
   filter(year < '2026')
-  
-  bull_count <- cleanbull|>
+
+```
+
+
+```{r}
+#| label: count_bull
+
+bull_count <- cleanbull|>
   count(NAME, year) |>
   group_by(NAME) |>
   filter(n >= 5) |>
@@ -107,10 +107,9 @@ cleanbull <- bullfrog |>
   filter(year < '2026')
 ```
 
+
 ```{r}
 #| label: join
-#| eval: TRUE
-
 
 frogs <- bull_count |>
   inner_join(red_count, by = c("NAME", "year")) |>
@@ -127,15 +126,32 @@ frogs <- bull_count |>
     cols = c(Bullfrog, Redfrog),
     names_to = "Species",
     values_to = "count"
-  ) 
-  
+  )
 ```
+
+
+```{r}
+#| label: create_csv
+
+write.csv(frogs, "data-clean/frog.csv", row.names = FALSE)
+ write.csv(red_count, "data-clean/red_count.csv", row.names = FALSE)
+
+```
+
+
+```{r}
+#| label: read_clean
+#| eval: TRUE
+
+frog <- read.csv("data-clean/frog.csv")
+red_count <- read.csv("data-clean/red_count.csv")
+```
+
 ## Visulization 1
 This first visualization is a comparison of the California red-frog population within each county over the years. As we can see, there is a gradual increase of the red frogs within the years. Some species like Sonoma have very sudden population growth.
 ```{r}
 #| label: redfrog_viz
 #| eval: TRUE
-
 
 red_count|>
   ggplot(aes(x = as.numeric(year), y = n, group = NAME, color = NAME)) +
@@ -149,7 +165,6 @@ red_count|>
        y = "Number of Frogs", 
        title = "Yearly Growth of California's Red-Legged Frog within Each County",
        caption = "Yearly Spotting of California Red-Legged Frog")
-
   
 ```
 
@@ -180,7 +195,7 @@ A comparison between the population rates of the California red-legged frog and 
 #| label: comparison_viz
 #| eval: TRUE
 
-frogs |>
+frog |>
   ggplot(aes(x = year, y = count, fill = Species)) +
   geom_col(position = "dodge") +
   scale_fill_manual(
